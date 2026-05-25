@@ -2,8 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient, useSuiClientQuery } from "@mysten/dapp-kit";
+import { Transaction } from "@mysten/sui/transactions";
 import WalletConnect from "../components/WalletConnect";
+import { uploadToWalrus } from "../lib/walrus";
+import { CONTRACTS } from "../lib/contracts";
+import { QRCodeSVG } from "qrcode.react";
+import { TouristQRScanner } from "../components/TouristQRScanner";
 
 // Types
 type CategoryId = "overview" | "issue" | "sales" | "register";
@@ -24,6 +29,24 @@ export default function Home() {
   const currentAccount = useCurrentAccount();
   const walletConnected = !!currentAccount;
   const walletAddress = currentAccount?.address || "";
+  const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
+  const suiClient = useSuiClient();
+
+  // Query owned MerchantLicense object
+  const { data: ownedLicenses, refetch: refetchLicenses } = useSuiClientQuery('getOwnedObjects', {
+    owner: walletAddress,
+    filter: {
+      StructType: `${CONTRACTS.PACKAGE_ID}::merchant::MerchantLicense`,
+    },
+    options: {
+      showContent: true,
+    }
+  }, { enabled: walletConnected });
+
+  const hasLicense = ownedLicenses && ownedLicenses.data.length > 0;
+  const licenseObject = hasLicense ? ownedLicenses.data[0].data : null;
+  const licenseFields = (licenseObject?.content as any)?.fields;
+  const merchantLicenseObjectId = licenseObject?.objectId || "";
 
   // Merchant state
   const [merchantUsdc, setMerchantUsdc] = useState("459.20");
@@ -45,18 +68,98 @@ export default function Home() {
   const [invoiceAmount, setInvoiceAmount] = useState("");
   const [generatedInvoice, setGeneratedInvoice] = useState<Invoice | null>(null);
   const [isIssuing, setIsIssuing] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  const handleTouristScanned = ({ touristAddress }: { touristAddress: string }) => {
+    setCustomerAddress(touristAddress);
+  };
+
+  // Registration Form States
+  const [registerBusinessName, setRegisterBusinessName] = useState("");
+  const [registerTradeLicenseNo, setRegisterTradeLicenseNo] = useState("");
+  const [registerVatRegNo, setRegisterVatRegNo] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-
-
-  const handleIssueInvoice = (e: React.FormEvent) => {
+  const handleRegisterMerchant = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!walletConnected) {
+      alert("Please connect your merchant wallet first!");
+      return;
+    }
+    setIsRegistering(true);
+    try {
+      const tx = new Transaction();
+      tx.moveCall({
+        target: `${CONTRACTS.PACKAGE_ID}::merchant::register_merchant`,
+        arguments: [
+          tx.object(CONTRACTS.MERCHANT_REGISTRY_ID),
+          tx.pure.vector('u8', Array.from(new TextEncoder().encode(registerBusinessName))),
+          tx.pure.vector('u8', Array.from(new TextEncoder().encode(registerTradeLicenseNo))),
+          tx.pure.vector('u8', Array.from(new TextEncoder().encode(registerVatRegNo))),
+        ],
+      });
+      const result = await signAndExecute({ transaction: tx });
+      alert(`Store successfully registered on Sui!\nTransaction hash: ${result.digest}`);
+      refetchLicenses();
+      setActiveCategory("overview");
+    } catch (err: any) {
+      alert(`Registration failed: ${err.message || err}`);
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const handleIssueInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!walletConnected) {
+      alert("Please connect your merchant wallet first!");
+      return;
+    }
+    if (!hasLicense) {
+      alert("Please register your store trade license first in the 'License' tab!");
+      return;
+    }
     if (!customerAddress || !invoiceAmount) return;
 
     setIsIssuing(true);
-    setTimeout(() => {
+    try {
       const calculatedVat = (parseFloat(invoiceAmount.replace(/,/g, '')) * 0.05).toFixed(2);
+      const vatAmountBaseUnits = Math.floor(parseFloat(calculatedVat) * 1_000_000); // base units
+
+      // Create invoice JSON representation
+      const invoiceData = JSON.stringify({
+        invoiceId: `INV-${Date.now()}`,
+        businessName: licenseFields?.business_name || "Dubai Mall Store",
+        customerAddress: customerAddress,
+        amountAED: invoiceAmount,
+        vatAED: calculatedVat,
+        timestamp: Date.now()
+      });
+      const blob = new Blob([invoiceData], { type: "application/json" });
+
+      // 1. Upload invoice to Walrus
+      const walrusResult = await uploadToWalrus(blob);
+
+      // 2. Mint Invoice NFT on Sui
+      const tx = new Transaction();
+      tx.moveCall({
+        target: `${CONTRACTS.PACKAGE_ID}::safwah::issue_invoice_nft`,
+        arguments: [
+          tx.object(merchantLicenseObjectId),
+          tx.pure.address(customerAddress),
+          tx.pure.vector('u8', Array.from(new TextEncoder().encode(`INV-${Math.floor(1000 + Math.random() * 9000)}`))),
+          tx.pure.u64(Math.floor(parseFloat(invoiceAmount) * 100)), // AED cents
+          tx.pure.u64(vatAmountBaseUnits),
+          tx.pure.vector('u8', Array.from(new TextEncoder().encode(walrusResult.blobId))),
+          tx.pure.vector('u8', Array.from(new TextEncoder().encode(walrusResult.blobUrl))),
+          tx.pure.vector('u8', Array.from(new TextEncoder().encode(walrusResult.blobUrl))),
+        ],
+      });
+
+      const result = await signAndExecute({ transaction: tx });
+
       const newInvoice: Invoice = {
         id: `INV-${Math.floor(9000 + Math.random() * 999)}`,
         customerWallet: customerAddress.slice(0, 6) + "..." + customerAddress.slice(-4),
@@ -67,20 +170,23 @@ export default function Home() {
       };
 
       setInvoices(prev => [newInvoice, ...prev]);
-      
+
       // Update store analytics
       const amountUSDC = (parseFloat(invoiceAmount) / 3.67);
       const vatUSDC = amountUSDC * 0.05;
       setTotalSales(prev => (parseFloat(prev.replace(/,/g, '')) + amountUSDC).toFixed(2));
       setTotalVatRefunded(prev => (parseFloat(prev.replace(/,/g, '')) + vatUSDC).toFixed(2));
-      setMerchantUsdc(prev => (parseFloat(prev) + (vatUSDC * 0.1)).toFixed(2)); // 10% platform kickback reward
+      setMerchantUsdc(prev => (parseFloat(prev) + (vatUSDC * 0.1)).toFixed(2)); // 10% platform share
 
       setGeneratedInvoice(newInvoice);
-      setIsIssuing(false);
-      
-      // Go to invoice view category
+      alert(`Invoice NFT successfully minted and sent to tourist wallet!\nTransaction Hash: ${result.digest}\nWalrus Blob: ${walrusResult.blobId.slice(0, 8)}...`);
+      refetchLicenses();
       setActiveCategory("sales");
-    }, 1500);
+    } catch (err: any) {
+      alert(`Invoice failed: ${err.message || err}`);
+    } finally {
+      setIsIssuing(false);
+    }
   };
 
   return (
@@ -157,7 +263,7 @@ export default function Home() {
               </div>
               <div className="hero-title-area">
                 <span className="label-caps">STORE SALES METRICS</span>
-                <h2>Dubai Mall Luxury Boutique</h2>
+                <h2>{hasLicense ? licenseFields?.business_name : "Dubai Mall Luxury Boutique"}</h2>
               </div>
             </div>
             <p className="hero-card-desc">
@@ -208,7 +314,25 @@ export default function Home() {
             </p>
             <form onSubmit={handleIssueInvoice} style={{ display: "flex", flexDirection: "column", gap: "12px", position: "relative", zIndex: 10 }}>
               <div className="form-group">
-                <label>Tourist Sui Address</label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ margin: 0 }}>Tourist Sui Address</label>
+                  <button
+                    type="button"
+                    onClick={() => setScannerOpen(true)}
+                    style={{
+                      background: "rgba(212, 175, 55, 0.2)",
+                      color: "var(--color-cyber-gold)",
+                      border: "1px solid rgba(212, 175, 55, 0.4)",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                      padding: "4px 10px",
+                      borderRadius: "8px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    📷 Scan QR
+                  </button>
+                </div>
                 <input 
                   type="text" 
                   className="form-input" 
@@ -283,26 +407,91 @@ export default function Home() {
               </div>
               <div className="hero-title-area">
                 <span className="label-caps">GOVERNMENT COMPLIANCE</span>
-                <h2>Trade License Status</h2>
+                <h2>{hasLicense ? "Trade License Details" : "Register Store License"}</h2>
               </div>
             </div>
-            <p className="hero-card-desc">
-              Trade license is verified by UAE Federal Tax Authority (FTA). Verified stores can issue on-chain claims instantly.
-            </p>
-            <div className="bento-grid">
-              <div className="bento-metric-card" style={{ gridColumn: "span 2" }}>
-                <span className="bento-metric-label">LICENSE STATUS</span>
-                <div className="bento-content" style={{ justifyContent: "space-between" }}>
-                  <span className="bento-value" style={{ color: "#10B981" }}>✓ VERIFIED PARTNER</span>
-                  <span style={{ fontSize: "10px", color: "var(--color-sage)" }}>NO: DxB-9921-TAX</span>
+            
+            {!walletConnected ? (
+              <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                <p style={{ color: "var(--color-sage)", marginBottom: "16px" }}>Please connect your merchant wallet first to view or register a license.</p>
+                <div style={{ display: "flex", justifyContent: "center" }}><WalletConnect /></div>
+              </div>
+            ) : hasLicense ? (
+              <>
+                <p className="hero-card-desc">
+                  Your store is registered with the UAE Federal Tax Authority (FTA).
+                </p>
+                <div className="bento-grid" style={{ gap: "10px", gridTemplateColumns: "1fr" }}>
+                  <div className="bento-metric-card">
+                    <span className="bento-metric-label">STORE NAME</span>
+                    <span className="bento-value" style={{ fontSize: "16px" }}>{licenseFields?.business_name}</span>
+                  </div>
+                  <div className="bento-metric-card">
+                    <span className="bento-metric-label">TRADE LICENSE NO</span>
+                    <span className="bento-value" style={{ fontSize: "16px" }}>{licenseFields?.trade_license_no}</span>
+                  </div>
+                  <div className="bento-metric-card">
+                    <span className="bento-metric-label">VAT REGISTRATION NO (TRN)</span>
+                    <span className="bento-value" style={{ fontSize: "16px" }}>{licenseFields?.vat_registration_no}</span>
+                  </div>
+                  <div className="bento-metric-card">
+                    <span className="bento-metric-label">STATUS</span>
+                    <span className="bento-value" style={{ color: licenseFields?.is_fta_verified ? "#10B981" : "#F59E0B" }}>
+                      {licenseFields?.is_fta_verified ? "✓ FTA VERIFIED PARTNER" : "PENDING VERIFICATION"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="hero-alert-box">
-              <div className="hero-alert-text">
-                📝 Direct settlement is routed to: {walletConnected ? walletAddress.slice(0, 8) + "..." + walletAddress.slice(-8) : "Connect wallet to view routing"}.
-              </div>
-            </div>
+                <div className="hero-alert-box" style={{ marginTop: "12px" }}>
+                  <div className="hero-alert-text">
+                    📝 Direct settlement is routed to: {walletAddress.slice(0, 8)}...{walletAddress.slice(-8)}.
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="hero-card-desc">
+                  Register your business trade license on Sui to enable instant tax-free invoicing.
+                </p>
+                <form onSubmit={handleRegisterMerchant} style={{ display: "flex", flexDirection: "column", gap: "12px", position: "relative", zIndex: 10 }}>
+                  <div className="form-group">
+                    <label>Business / Store Name</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="e.g. Dubai Mall Luxury Boutique" 
+                      value={registerBusinessName}
+                      onChange={(e) => setRegisterBusinessName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Trade License Number</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="e.g. DxB-9921-TAX" 
+                      value={registerTradeLicenseNo}
+                      onChange={(e) => setRegisterTradeLicenseNo(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>VAT Registration Number (TRN)</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="e.g. 100234567800003" 
+                      value={registerVatRegNo}
+                      onChange={(e) => setRegisterVatRegNo(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn-primary" style={{ marginTop: "8px" }}>
+                    {isRegistering ? "Registering on Sui..." : "Register Merchant License"}
+                  </button>
+                </form>
+              </>
+            )}
           </>
         )}
       </section>
@@ -394,11 +583,9 @@ export default function Home() {
             {generatedInvoice ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", padding: "20px 0" }}>
                 <span style={{ fontSize: "14px", fontWeight: "bold", color: "#10B981" }}>✓ DIGITAL INVOICE GENERATED SUCCESSFULLY</span>
-                {/* Simulated QR Code */}
-                <div style={{ background: "white", padding: "16px", borderRadius: "16px", width: "160px", height: "160px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg viewBox="0 0 24 24" style={{ width: "120px", height: "120px", fill: "#000" }}>
-                    <path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm0 8h2v2H5v-2zm8-10h6v6h-6V3zm2 2v2h2V5h-2zm-10 8h6v6H3v-6zm2 2v2h2v-2H5zm12 2h2v2h-2v-2zm2-4h2v2h-2v-2zm-2-2h2v2h-2v-2zm-2 2h2v2h-2v-2zM3 13h2v2H3v-2zm14 4v2h2v-2h-2zm2-2h2v2h-2v-2z"/>
-                  </svg>
+                {/* Dynamic QR Code */}
+                <div style={{ background: "white", padding: "16px", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <QRCodeSVG value={generatedInvoice.id} size={120} />
                 </div>
                 <div style={{ textAlign: "center", color: "var(--color-sage)" }}>
                   <div style={{ fontSize: "14px", fontWeight: "bold", color: "#fff" }}>Invoice ID: {generatedInvoice.id}</div>
@@ -412,7 +599,25 @@ export default function Home() {
             ) : (
               <form onSubmit={handleIssueInvoice} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                 <div className="form-group">
-                  <label>Tourist Wallet Address / QR Code Scan</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label style={{ margin: 0 }}>Tourist Wallet Address / QR Code Scan</label>
+                    <button
+                      type="button"
+                      onClick={() => setScannerOpen(true)}
+                      style={{
+                        background: "rgba(212, 175, 55, 0.2)",
+                        color: "var(--color-cyber-gold)",
+                        border: "1px solid rgba(212, 175, 55, 0.4)",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        padding: "4px 10px",
+                        borderRadius: "8px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      📷 Scan QR
+                    </button>
+                  </div>
                   <input 
                     type="text" 
                     className="form-input" 
@@ -448,6 +653,12 @@ export default function Home() {
           </div>
         </div>
       )}
+      {/* Tourist QR Scanner Modal */}
+      <TouristQRScanner
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onTouristScanned={handleTouristScanned}
+      />
     </main>
   );
 }
