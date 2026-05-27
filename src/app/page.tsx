@@ -9,6 +9,7 @@ import { uploadToWalrus } from "../lib/walrus";
 import { CONTRACTS } from "../lib/contracts";
 import { QRCodeSVG } from "qrcode.react";
 import { TouristQRScanner } from "../components/TouristQRScanner";
+import { toast } from "sonner";
 
 // Types
 type CategoryId = "overview" | "issue" | "sales" | "register";
@@ -86,7 +87,7 @@ export default function Home() {
   const handleRegisterMerchant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!walletConnected) {
-      alert("Please connect your merchant wallet first!");
+      toast.error("Please connect your merchant wallet first!");
       return;
     }
     setIsRegistering(true);
@@ -102,11 +103,11 @@ export default function Home() {
         ],
       });
       const result = await signAndExecute({ transaction: tx });
-      alert(`Store successfully registered on Sui!\nTransaction hash: ${result.digest}`);
+      toast.success(`Store successfully registered on Sui!\nTransaction hash: ${result.digest}`);
       refetchLicenses();
       setActiveCategory("overview");
     } catch (err: any) {
-      alert(`Registration failed: ${err.message || err}`);
+      toast.error(`Registration failed: ${err.message || err}`);
     } finally {
       setIsRegistering(false);
     }
@@ -115,16 +116,16 @@ export default function Home() {
   const handleIssueInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!walletConnected) {
-      alert("Please connect your merchant wallet first!");
+      toast.error("Please connect your merchant wallet first!");
       return;
     }
     if (!hasLicense) {
-      alert("Please register your store trade license first in the 'License' tab!");
+      toast.error("Please register your store trade license first in the 'License' tab!");
       return;
     }
     if (!invoiceAmount) return;
     if (paymentMode === 'physical' && !customerAddress) {
-      alert("Please specify the tourist wallet address.");
+      toast.error("Please specify the tourist wallet address.");
       return;
     }
 
@@ -186,7 +187,7 @@ export default function Home() {
         setMerchantUsdc(prev => (parseFloat(prev) + (vatUSDC * 0.1)).toFixed(2)); // 10% platform share
 
         setGeneratedInvoice(newInvoice);
-        alert(`Invoice NFT successfully minted and sent to tourist wallet!\nTransaction Hash: ${result.digest}\nWalrus Blob: ${walrusResult.blobId.slice(0, 8)}...`);
+        toast.success(`Invoice NFT successfully minted and sent to tourist wallet!\nTransaction Hash: ${result.digest}\nWalrus Blob: ${walrusResult.blobId.slice(0, 8)}...`);
       } else {
         // Digital SUI Pay mode (No on-chain TX from merchant; generate bill payload for tourist QR scanner)
         const billPayload = JSON.stringify({
@@ -220,12 +221,12 @@ export default function Home() {
         setTotalVatRefunded(prev => (parseFloat(prev.replace(/,/g, '')) + vatUSDC).toFixed(2));
 
         setGeneratedInvoice(newInvoice);
-        alert(`Digital Bill QR Code generated!\nShow this QR to the tourist to make the atomic payment on Sui.\nWalrus Blob: ${walrusResult.blobId.slice(0, 8)}...`);
+        toast.success(`Digital Bill QR Code generated!\nShow this QR to the tourist to make the atomic payment on Sui.\nWalrus Blob: ${walrusResult.blobId.slice(0, 8)}...`);
       }
       refetchLicenses();
       setActiveCategory("sales");
     } catch (err: any) {
-      alert(`Invoice failed: ${err.message || err}`);
+      toast.error(`Invoice failed: ${err.message || err}`);
     } finally {
       setIsIssuing(false);
     }

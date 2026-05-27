@@ -49,13 +49,13 @@ export function TouristQRScanner({ isOpen, onClose, onTouristScanned }: TouristQ
         payload = {
           version: 'wallet_address',
           tourist: result,
-          network: process.env.VITE_SUI_NETWORK ?? 'devnet',
+          network: process.env.VITE_SUI_NETWORK ?? 'testnet',
         };
       } else if (result.startsWith('suiet://') || result.startsWith('sui://')) {
         // Suiet/Sui wallet deep link
         const address = result.split('address=')[1]?.split('&')[0] ?? '';
         if (!address) throw new Error('Could not extract address from wallet QR');
-        payload = { version: 'wallet_deeplink', tourist: address, network: 'devnet' };
+        payload = { version: 'wallet_deeplink', tourist: address, network: 'testnet' };
       } else {
         throw new Error('Unrecognized QR format. Ask tourist to show their Safwah claim QR.');
       }
