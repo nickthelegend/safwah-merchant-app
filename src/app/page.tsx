@@ -63,10 +63,11 @@ export default function Home() {
   );
 
   // Form states for generating digital invoice
+  const [paymentMode, setPaymentMode] = useState<"physical" | "digital">("physical");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customerAddress, setCustomerAddress] = useState("");
   const [invoiceAmount, setInvoiceAmount] = useState("");
-  const [generatedInvoice, setGeneratedInvoice] = useState<Invoice | null>(null);
+  const [generatedInvoice, setGeneratedInvoice] = useState<(Invoice & { qrValue?: string }) | null>(null);
   const [isIssuing, setIsIssuing] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
 
@@ -121,18 +122,23 @@ export default function Home() {
       alert("Please register your store trade license first in the 'License' tab!");
       return;
     }
-    if (!customerAddress || !invoiceAmount) return;
+    if (!invoiceAmount) return;
+    if (paymentMode === 'physical' && !customerAddress) {
+      alert("Please specify the tourist wallet address.");
+      return;
+    }
 
     setIsIssuing(true);
     try {
       const calculatedVat = (parseFloat(invoiceAmount.replace(/,/g, '')) * 0.05).toFixed(2);
       const vatAmountBaseUnits = Math.floor(parseFloat(calculatedVat) * 1_000_000); // base units
+      const invoiceNumber = `INV-${Math.floor(1000 + Math.random() * 9000)}`;
 
       // Create invoice JSON representation
       const invoiceData = JSON.stringify({
-        invoiceId: `INV-${Date.now()}`,
+        invoiceId: invoiceNumber,
         businessName: licenseFields?.business_name || "Dubai Mall Store",
-        customerAddress: customerAddress,
+        customerAddress: paymentMode === 'physical' ? customerAddress : "Digital SUI Pay",
         amountAED: invoiceAmount,
         vatAED: calculatedVat,
         timestamp: Date.now()
@@ -142,44 +148,80 @@ export default function Home() {
       // 1. Upload invoice to Walrus
       const walrusResult = await uploadToWalrus(blob);
 
-      // 2. Mint Invoice NFT on Sui
-      const tx = new Transaction();
-      tx.moveCall({
-        target: `${CONTRACTS.PACKAGE_ID}::safwah::issue_invoice_nft`,
-        arguments: [
-          tx.object(merchantLicenseObjectId),
-          tx.pure.address(customerAddress),
-          tx.pure.vector('u8', Array.from(new TextEncoder().encode(`INV-${Math.floor(1000 + Math.random() * 9000)}`))),
-          tx.pure.u64(Math.floor(parseFloat(invoiceAmount) * 100)), // AED cents
-          tx.pure.u64(vatAmountBaseUnits),
-          tx.pure.vector('u8', Array.from(new TextEncoder().encode(walrusResult.blobId))),
-          tx.pure.vector('u8', Array.from(new TextEncoder().encode(walrusResult.blobUrl))),
-          tx.pure.vector('u8', Array.from(new TextEncoder().encode(walrusResult.blobUrl))),
-        ],
-      });
+      if (paymentMode === 'physical') {
+        // 2. Mint Invoice NFT on Sui
+        const tx = new Transaction();
+        tx.moveCall({
+          target: `${CONTRACTS.PACKAGE_ID}::safwah::issue_invoice_nft`,
+          arguments: [
+            tx.object(merchantLicenseObjectId),
+            tx.pure.address(customerAddress),
+            tx.pure.vector('u8', Array.from(new TextEncoder().encode(invoiceNumber))),
+            tx.pure.u64(Math.floor(parseFloat(invoiceAmount) * 100)), // AED cents
+            tx.pure.u64(vatAmountBaseUnits),
+            tx.pure.vector('u8', Array.from(new TextEncoder().encode(walrusResult.blobId))),
+            tx.pure.vector('u8', Array.from(new TextEncoder().encode(walrusResult.blobUrl))),
+            tx.pure.vector('u8', Array.from(new TextEncoder().encode(walrusResult.blobUrl))),
+          ],
+        });
 
-      const result = await signAndExecute({ transaction: tx });
+        const result = await signAndExecute({ transaction: tx });
 
-      const newInvoice: Invoice = {
-        id: `INV-${Math.floor(9000 + Math.random() * 999)}`,
-        customerWallet: customerAddress.slice(0, 6) + "..." + customerAddress.slice(-4),
-        amount: `${parseFloat(invoiceAmount).toLocaleString()} AED`,
-        vat: `${calculatedVat} AED`,
-        date: new Date().toISOString().split('T')[0],
-        status: "Issued"
-      };
+        const newInvoice: Invoice = {
+          id: invoiceNumber,
+          customerWallet: customerAddress.slice(0, 6) + "..." + customerAddress.slice(-4),
+          amount: `${parseFloat(invoiceAmount).toLocaleString()} AED`,
+          vat: `${calculatedVat} AED`,
+          date: new Date().toISOString().split('T')[0],
+          status: "Issued"
+        };
 
-      setInvoices(prev => [newInvoice, ...prev]);
+        setInvoices(prev => [newInvoice, ...prev]);
 
-      // Update store analytics
-      const amountUSDC = (parseFloat(invoiceAmount) / 3.67);
-      const vatUSDC = amountUSDC * 0.05;
-      setTotalSales(prev => (parseFloat(prev.replace(/,/g, '')) + amountUSDC).toFixed(2));
-      setTotalVatRefunded(prev => (parseFloat(prev.replace(/,/g, '')) + vatUSDC).toFixed(2));
-      setMerchantUsdc(prev => (parseFloat(prev) + (vatUSDC * 0.1)).toFixed(2)); // 10% platform share
+        // Update store analytics
+        const amountUSDC = (parseFloat(invoiceAmount) / 3.67);
+        const vatUSDC = amountUSDC * 0.05;
+        setTotalSales(prev => (parseFloat(prev.replace(/,/g, '')) + amountUSDC).toFixed(2));
+        setTotalVatRefunded(prev => (parseFloat(prev.replace(/,/g, '')) + vatUSDC).toFixed(2));
+        setMerchantUsdc(prev => (parseFloat(prev) + (vatUSDC * 0.1)).toFixed(2)); // 10% platform share
 
-      setGeneratedInvoice(newInvoice);
-      alert(`Invoice NFT successfully minted and sent to tourist wallet!\nTransaction Hash: ${result.digest}\nWalrus Blob: ${walrusResult.blobId.slice(0, 8)}...`);
+        setGeneratedInvoice(newInvoice);
+        alert(`Invoice NFT successfully minted and sent to tourist wallet!\nTransaction Hash: ${result.digest}\nWalrus Blob: ${walrusResult.blobId.slice(0, 8)}...`);
+      } else {
+        // Digital SUI Pay mode (No on-chain TX from merchant; generate bill payload for tourist QR scanner)
+        const billPayload = JSON.stringify({
+          type: "safwah_bill_v1",
+          merchantAddress: walletAddress,
+          merchantLicenseId: merchantLicenseObjectId,
+          businessName: licenseFields?.business_name || "Dubai Mall Store",
+          amountAED: invoiceAmount,
+          vatAED: calculatedVat,
+          invoiceNumber: invoiceNumber,
+          walrusBlobId: walrusResult.blobId,
+          walrusUrl: walrusResult.blobUrl,
+        });
+
+        const newInvoice = {
+          id: invoiceNumber,
+          customerWallet: "Digital SUI Pay",
+          amount: `${parseFloat(invoiceAmount).toLocaleString()} AED`,
+          vat: `${calculatedVat} AED`,
+          date: new Date().toISOString().split('T')[0],
+          status: "Issued" as const,
+          qrValue: billPayload
+        };
+
+        setInvoices(prev => [newInvoice, ...prev]);
+
+        // Update store analytics locally
+        const amountUSDC = (parseFloat(invoiceAmount) / 3.67);
+        const vatUSDC = amountUSDC * 0.05;
+        setTotalSales(prev => (parseFloat(prev.replace(/,/g, '')) + amountUSDC).toFixed(2));
+        setTotalVatRefunded(prev => (parseFloat(prev.replace(/,/g, '')) + vatUSDC).toFixed(2));
+
+        setGeneratedInvoice(newInvoice);
+        alert(`Digital Bill QR Code generated!\nShow this QR to the tourist to make the atomic payment on Sui.\nWalrus Blob: ${walrusResult.blobId.slice(0, 8)}...`);
+      }
       refetchLicenses();
       setActiveCategory("sales");
     } catch (err: any) {
@@ -310,38 +352,59 @@ export default function Home() {
               </div>
             </div>
             <p className="hero-card-desc">
-              Input tourist's wallet address and invoice amount. Safwah calculates the 5% VAT and issues an instant on-chain invoice claimable on their app.
+              Choose payment checkout method: Physical cash/card (mint directly to tourist) or Digital SUI Pay (atomic QR settlement).
             </p>
+
+            {/* Payment Mode Selector Toggle */}
+            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,175,55,0.2)', padding: '4px', borderRadius: '14px', marginBottom: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setPaymentMode('physical')}
+                style={{ flex: 1, padding: '10px', borderRadius: '10px', background: paymentMode === 'physical' ? 'var(--color-cyber-gold-dark)' : 'none', color: paymentMode === 'physical' ? 'var(--color-void-black)' : 'var(--color-sage)', border: 'none', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}
+              >
+                💵 Physical Checkout
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMode('digital')}
+                style={{ flex: 1, padding: '10px', borderRadius: '10px', background: paymentMode === 'digital' ? 'var(--color-cyber-gold-dark)' : 'none', color: paymentMode === 'digital' ? 'var(--color-void-black)' : 'var(--color-sage)', border: 'none', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}
+              >
+                ⚡ Digital SUI Pay (QR)
+              </button>
+            </div>
+
             <form onSubmit={handleIssueInvoice} style={{ display: "flex", flexDirection: "column", gap: "12px", position: "relative", zIndex: 10 }}>
-              <div className="form-group">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                  <label style={{ margin: 0 }}>Tourist Sui Address</label>
-                  <button
-                    type="button"
-                    onClick={() => setScannerOpen(true)}
-                    style={{
-                      background: "rgba(212, 175, 55, 0.2)",
-                      color: "var(--color-cyber-gold)",
-                      border: "1px solid rgba(212, 175, 55, 0.4)",
-                      fontSize: "11px",
-                      fontWeight: "bold",
-                      padding: "4px 10px",
-                      borderRadius: "8px",
-                      cursor: "pointer"
-                    }}
-                  >
-                    📷 Scan QR
-                  </button>
+              {paymentMode === 'physical' && (
+                <div className="form-group">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label style={{ margin: 0 }}>Tourist Sui Address</label>
+                    <button
+                      type="button"
+                      onClick={() => setScannerOpen(true)}
+                      style={{
+                        background: "rgba(212, 175, 55, 0.2)",
+                        color: "var(--color-cyber-gold)",
+                        border: "1px solid rgba(212, 175, 55, 0.4)",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        padding: "4px 10px",
+                        borderRadius: "8px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      📷 Scan QR
+                    </button>
+                  </div>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="e.g. 0x8c2a...f9de" 
+                    value={customerAddress}
+                    onChange={(e) => setCustomerAddress(e.target.value)}
+                    required
+                  />
                 </div>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="e.g. 0x8c2a...f9de" 
-                  value={customerAddress}
-                  onChange={(e) => setCustomerAddress(e.target.value)}
-                  required
-                />
-              </div>
+              )}
               <div className="form-group">
                 <label>Invoice Amount (AED)</label>
                 <input 
@@ -354,7 +417,7 @@ export default function Home() {
                 />
               </div>
               <button type="submit" className="btn-primary" style={{ marginTop: "8px" }}>
-                {isIssuing ? "Generating On-chain Tag..." : "Generate Digital Tax-Free Tag"}
+                {isIssuing ? "Processing..." : paymentMode === 'physical' ? "Generate Digital Tax-Free Tag" : "Generate Bill QR Code"}
               </button>
             </form>
           </>
@@ -572,72 +635,95 @@ export default function Home() {
 
 
       {/* Invoicing FAB Modal */}
+      {/* Invoicing FAB Modal */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
               <span className="label-caps" style={{ color: "var(--color-cyber-gold)", fontSize: "12px" }}>GENERATE TAX-FREE DIGITAL TAG</span>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: "none", border: "none", fontSize: "24px", color: "var(--color-sage)", cursor: "pointer" }}>&times;</button>
+              <button onClick={() => { setIsModalOpen(false); setGeneratedInvoice(null); }} style={{ background: "none", border: "none", fontSize: "24px", color: "var(--color-sage)", cursor: "pointer" }}>&times;</button>
             </div>
             
             {generatedInvoice ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", padding: "20px 0" }}>
-                <span style={{ fontSize: "14px", fontWeight: "bold", color: "#10B981" }}>✓ DIGITAL INVOICE GENERATED SUCCESSFULLY</span>
+                <span style={{ fontSize: "14px", fontWeight: "bold", color: "#10B981", textAlign: "center" }}>
+                  {generatedInvoice.customerWallet === "Digital SUI Pay" ? "✓ DIGITAL BILL QR CODE GENERATED" : "✓ DIGITAL INVOICE MINTED SUCCESSFULLY"}
+                </span>
                 {/* Dynamic QR Code */}
                 <div style={{ background: "white", padding: "16px", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <QRCodeSVG value={generatedInvoice.id} size={120} />
+                  <QRCodeSVG value={generatedInvoice.qrValue || generatedInvoice.id} size={160} />
                 </div>
                 <div style={{ textAlign: "center", color: "var(--color-sage)" }}>
                   <div style={{ fontSize: "14px", fontWeight: "bold", color: "#fff" }}>Invoice ID: {generatedInvoice.id}</div>
                   <div style={{ fontSize: "12px" }}>Value: {generatedInvoice.amount} (VAT: {generatedInvoice.vat})</div>
-                  <div style={{ fontSize: "10px", color: "var(--color-sage)" }}>Recipient: {generatedInvoice.customerWallet}</div>
+                  <div style={{ fontSize: "10px", color: "var(--color-sage)" }}>Method: {generatedInvoice.customerWallet}</div>
                 </div>
                 <button className="btn-secondary" style={{ width: "100%" }} onClick={() => { setGeneratedInvoice(null); setIsModalOpen(false); }}>
                   Done
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleIssueInvoice} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                <div className="form-group">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                    <label style={{ margin: 0 }}>Tourist Wallet Address / QR Code Scan</label>
-                    <button
-                      type="button"
-                      onClick={() => setScannerOpen(true)}
-                      style={{
-                        background: "rgba(212, 175, 55, 0.2)",
-                        color: "var(--color-cyber-gold)",
-                        border: "1px solid rgba(212, 175, 55, 0.4)",
-                        fontSize: "11px",
-                        fontWeight: "bold",
-                        padding: "4px 10px",
-                        borderRadius: "8px",
-                        cursor: "pointer"
-                      }}
-                    >
-                      📷 Scan QR
-                    </button>
-                  </div>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    placeholder="e.g. 0x8c2a71f09b558de0291ba207f6e3c4a20b08f9de" 
-                    value={customerAddress}
-                    onChange={(e) => setCustomerAddress(e.target.value)}
-                    required
-                  />
+              <form onSubmit={handleIssueInvoice} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {/* Payment Mode Selector Toggle */}
+                <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,175,55,0.2)', padding: '4px', borderRadius: '14px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMode('physical')}
+                    style={{ flex: 1, padding: '10px', borderRadius: '10px', background: paymentMode === 'physical' ? 'var(--color-cyber-gold-dark)' : 'none', color: paymentMode === 'physical' ? 'var(--color-void-black)' : 'var(--color-sage)', border: 'none', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}
+                  >
+                    💵 Physical
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMode('digital')}
+                    style={{ flex: 1, padding: '10px', borderRadius: '10px', background: paymentMode === 'digital' ? 'var(--color-cyber-gold-dark)' : 'none', color: paymentMode === 'digital' ? 'var(--color-void-black)' : 'var(--color-sage)', border: 'none', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}
+                  >
+                    ⚡ SUI Pay (QR)
+                  </button>
                 </div>
 
+                {paymentMode === 'physical' && (
+                  <div className="form-group">
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                      <label style={{ margin: 0 }}>Tourist Wallet Address</label>
+                      <button
+                        type="button"
+                        onClick={() => setScannerOpen(true)}
+                        style={{
+                          background: "rgba(212, 175, 55, 0.2)",
+                          color: "var(--color-cyber-gold)",
+                          border: "1px solid rgba(212, 175, 55, 0.4)",
+                          fontSize: "11px",
+                          fontWeight: "bold",
+                          padding: "4px 10px",
+                          borderRadius: "8px",
+                          cursor: "pointer"
+                        }}
+                      >
+                        📷 Scan QR
+                      </button>
+                    </div>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="0x8c2a...f9de" 
+                      value={customerAddress}
+                      onChange={(e) => setCustomerAddress(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
+
                 <div className="form-group">
-                  <label>Purchase Gross Value (AED)</label>
+                  <label>Gross Invoice Value (AED)</label>
                   <input 
-                    type="number" 
-                    className="form-input" 
-                    placeholder="e.g. 12000" 
-                    value={invoiceAmount}
-                    onChange={(e) => setInvoiceAmount(e.target.value)}
-                    required
-                  />
+                     type="number" 
+                     className="form-input" 
+                     placeholder="e.g. 12000" 
+                     value={invoiceAmount}
+                     onChange={(e) => setInvoiceAmount(e.target.value)}
+                     required
+                   />
                 </div>
 
                 <div className="modal-buttons">
@@ -645,7 +731,7 @@ export default function Home() {
                     Cancel
                   </button>
                   <button type="submit" className="btn-primary">
-                    {isIssuing ? "Issuing on Sui..." : "Generate & Settle"}
+                    {isIssuing ? "Processing..." : paymentMode === 'physical' ? "Generate & Settle" : "Generate Bill QR"}
                   </button>
                 </div>
               </form>
