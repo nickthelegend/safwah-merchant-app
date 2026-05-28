@@ -50,18 +50,30 @@ export default function Home() {
   const merchantLicenseObjectId = licenseObject?.objectId || "";
 
   // Merchant state
-  const [merchantUsdc, setMerchantUsdc] = useState("459.20");
-  const [totalSales, setTotalSales] = useState("89,500.00");
-  const [totalVatRefunded, setTotalVatRefunded] = useState("4,475.00");
+  const [merchantUsdc, setMerchantUsdc] = useState("0.00");
+  const [totalSales, setTotalSales] = useState("0.00");
+  const [totalVatRefunded, setTotalVatRefunded] = useState("0.00");
+
+  const { data: licenseObj } = useSuiClientQuery('getObject', {
+    id: merchantLicenseObjectId || '',
+    options: { showContent: true },
+  }, { enabled: !!merchantLicenseObjectId, refetchInterval: 10000 });
+
+  useEffect(() => {
+    if (licenseObj?.data?.content) {
+      const fields = (licenseObj.data.content as any).fields ?? {};
+      const totalVatCollectedBase = Number(fields.total_vat_collected ?? 0);
+      const merchantUsdcVal = (totalVatCollectedBase / 1_000_000).toFixed(2);
+      const totalSalesVal = ((totalVatCollectedBase / 1_000_000) * 20).toFixed(2);
+      const totalVatRefundedVal = (totalVatCollectedBase / 1_000_000).toFixed(2);
+      setMerchantUsdc(merchantUsdcVal);
+      setTotalSales(totalSalesVal);
+      setTotalVatRefunded(totalVatRefundedVal);
+    }
+  }, [licenseObj]);
 
   // Invoices list state
-  const [invoices, setInvoices] = useState<Invoice[]>(
-    [
-      { id: "INV-9021", customerWallet: "0x8c2a...f9de", amount: "5,499.00 AED", vat: "274.95 AED", date: "2026-05-23", status: "Settled (USDC)" },
-      { id: "INV-9022", customerWallet: "0x3a9f...e42c", amount: "12,450.00 AED", vat: "622.50 AED", date: "2026-05-24", status: "Claimed" },
-      { id: "INV-9020", customerWallet: "0xf19e...88ab", amount: "1,200.00 AED", vat: "60.00 AED", date: "2026-05-21", status: "Settled (USDC)" }
-    ]
-  );
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   // Form states for generating digital invoice
   const [paymentMode, setPaymentMode] = useState<"physical" | "digital">("physical");
@@ -133,7 +145,8 @@ export default function Home() {
     try {
       const calculatedVat = (parseFloat(invoiceAmount.replace(/,/g, '')) * 0.05).toFixed(2);
       const vatAmountBaseUnits = Math.floor(parseFloat(calculatedVat) * 1_000_000); // base units
-      const invoiceNumber = `INV-${Math.floor(1000 + Math.random() * 9000)}`;
+      const totalInvoicesIssued = Number(licenseFields?.total_invoices_issued ?? 0);
+      const invoiceNumber = `INV-${totalInvoicesIssued + 1}-${Date.now().toString().slice(-4)}`;
 
       // Create invoice JSON representation
       const invoiceData = JSON.stringify({
