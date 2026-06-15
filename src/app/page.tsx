@@ -20,7 +20,7 @@ interface Invoice {
   amount: string;
   vat: string;
   date: string;
-  status: "Issued" | "Claimed" | "Settled (USDC)";
+  status: "Issued" | "Claimed" | "Settled (USDC)" | "PAID via money";
 }
 
 import * as React from 'react';
@@ -266,7 +266,7 @@ export default function Home() {
           amount: `${parseFloat(invoiceAmount).toLocaleString()} AED`,
           vat: `${calculatedVat} AED`,
           date: new Date().toISOString().split('T')[0],
-          status: "Issued"
+          status: "PAID via money"
         };
 
         setInvoices(prev => [newInvoice, ...prev]);
@@ -290,7 +290,7 @@ export default function Home() {
             businessName: licenseFields?.business_name || "Dubai Mall Store",
             amountAED: invoiceAmount,
             vatAED: calculatedVat,
-            status: "Issued",
+            status: "PAID via money",
             walrusBlobId: walrusResult.blobId,
             walrusUrl: walrusResult.blobUrl
           })
@@ -325,6 +325,12 @@ export default function Home() {
           walrusUrl: walrusResult.blobUrl,
         });
 
+        const base64Payload = btoa(unescape(encodeURIComponent(billPayload)));
+        const touristBaseUrl = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+          ? 'http://localhost:3000'
+          : 'https://safwah-app.vercel.app';
+        const hybridQrLink = `${touristBaseUrl}/?bill=${base64Payload}`;
+
         const newInvoice = {
           id: invoiceNumber,
           customerWallet: "Digital SUI Pay",
@@ -332,7 +338,7 @@ export default function Home() {
           vat: `${calculatedVat} AED`,
           date: new Date().toISOString().split('T')[0],
           status: "Issued" as const,
-          qrValue: billPayload
+          qrValue: hybridQrLink
         };
 
         setInvoices(prev => [newInvoice, ...prev]);
@@ -798,7 +804,7 @@ export default function Home() {
             {generatedInvoice ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", padding: "20px 0" }}>
                 <span style={{ fontSize: "14px", fontWeight: "bold", color: "#10B981", textAlign: "center" }}>
-                  {generatedInvoice.customerWallet === "Digital SUI Pay" ? "✓ DIGITAL BILL QR CODE GENERATED" : "✓ DIGITAL INVOICE MINTED SUCCESSFULLY"}
+                  {generatedInvoice.customerWallet === "Digital SUI Pay" ? "✓ DIGITAL BILL QR CODE GENERATED" : "✓ PAID VIA PHYSICAL MONEY (NFT MINTED)"}
                 </span>
                 {/* Dynamic QR Code */}
                 <div style={{ background: "white", padding: "16px", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
