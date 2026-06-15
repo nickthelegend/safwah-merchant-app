@@ -138,7 +138,19 @@ export default function Home() {
         ],
       });
       const result = await signAndExecute({ transaction: tx });
-      toast.success(`Store successfully registered on Sui!\nTransaction hash: ${result.digest}`);
+      toast.success(
+        <div>
+          <p className="font-bold">Store successfully registered on Sui!</p>
+          <a
+            href={`https://suiscan.xyz/txblock/${result.digest}?network=testnet`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-700 underline text-xs font-semibold block mt-1"
+          >
+            View on Sui Explorer ↗
+          </a>
+        </div>
+      );
       refetchLicenses();
       setActiveCategory("overview");
     } catch (err: any) {
@@ -241,7 +253,20 @@ export default function Home() {
         }).catch(err => console.error("Failed to save invoice to MongoDB", err));
 
         setGeneratedInvoice(newInvoice);
-        toast.success(`Invoice NFT successfully minted and sent to tourist wallet!\nTransaction Hash: ${result.digest}\nWalrus Blob: ${walrusResult.blobId.slice(0, 8)}...`);
+        toast.success(
+          <div>
+            <p className="font-bold">Invoice NFT successfully minted and sent to tourist wallet!</p>
+            <p className="text-xs text-zinc-300 mt-1">Walrus Blob: {walrusResult.blobId.slice(0, 8)}...</p>
+            <a
+              href={`https://suiscan.xyz/txblock/${result.digest}?network=testnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-700 underline text-xs font-semibold block mt-1"
+            >
+              View on Sui Explorer ↗
+            </a>
+          </div>
+        );
       } else {
         // Digital SUI Pay mode (No on-chain TX from merchant; generate bill payload for tourist QR scanner)
         const billPayload = JSON.stringify({
