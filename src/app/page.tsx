@@ -78,7 +78,7 @@ export default function Home() {
   // Load invoices from MongoDB on mount
   useEffect(() => {
     if (!walletAddress) return;
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:3001';
     fetch(`${backendUrl}/api/invoices/merchant/${walletAddress}`)
       .then(res => res.json())
       .then(data => {
@@ -223,7 +223,7 @@ export default function Home() {
         setMerchantUsdc(prev => (parseFloat(prev) + (vatUSDC * 0.1)).toFixed(2)); // 10% platform share
 
         // Save to MongoDB
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+        const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:3001';
         fetch(`${backendUrl}/api/invoices`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -269,7 +269,7 @@ export default function Home() {
         setInvoices(prev => [newInvoice, ...prev]);
 
         // Save to MongoDB
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+        const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:3001';
         fetch(`${backendUrl}/api/invoices`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
