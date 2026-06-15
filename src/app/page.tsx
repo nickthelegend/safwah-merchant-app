@@ -23,7 +23,26 @@ interface Invoice {
   status: "Issued" | "Claimed" | "Settled (USDC)";
 }
 
+import * as React from 'react';
+
+function useFxRate() {
+  const [rate, setRate] = React.useState(3.6725);
+  React.useEffect(() => {
+    fetch('https://open.er-api.com/v6/latest/USD')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.rates && typeof data.rates.AED === 'number') {
+          setRate(data.rates.AED);
+          console.log('Real-time AED/USD FX Rate loaded:', data.rates.AED);
+        }
+      })
+      .catch(err => console.warn('Failed to fetch real-time FX rate, falling back to 3.6725', err));
+  }, []);
+  return rate;
+}
+
 export default function Home() {
+  const fxRate = useFxRate();
   const [activeCategory, setActiveCategory] = useState<CategoryId>("overview");
   
   // Real Sui Wallet connection hooks
@@ -228,7 +247,7 @@ export default function Home() {
         setInvoices(prev => [newInvoice, ...prev]);
 
         // Update store analytics
-        const amountUSDC = (parseFloat(invoiceAmount) / 3.67);
+        const amountUSDC = (parseFloat(invoiceAmount) / fxRate);
         const vatUSDC = amountUSDC * 0.05;
         setTotalSales(prev => (parseFloat(prev.replace(/,/g, '')) + amountUSDC).toFixed(2));
         setTotalVatRefunded(prev => (parseFloat(prev.replace(/,/g, '')) + vatUSDC).toFixed(2));
@@ -312,7 +331,7 @@ export default function Home() {
         }).catch(err => console.error("Failed to save invoice to MongoDB", err));
 
         // Update store analytics locally
-        const amountUSDC = (parseFloat(invoiceAmount) / 3.67);
+        const amountUSDC = (parseFloat(invoiceAmount) / fxRate);
         const vatUSDC = amountUSDC * 0.05;
         setTotalSales(prev => (parseFloat(prev.replace(/,/g, '')) + amountUSDC).toFixed(2));
         setTotalVatRefunded(prev => (parseFloat(prev.replace(/,/g, '')) + vatUSDC).toFixed(2));
