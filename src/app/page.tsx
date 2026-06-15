@@ -412,53 +412,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Category selector */}
-      <section className="category-scroll-container" ref={scrollContainerRef}>
-        <div className="category-btn-wrapper" id="cat-btn-overview">
-          {activeCategory === "overview" ? (
-            <button className="category-btn-active" onClick={() => setActiveCategory("overview")}>
-              <div className="active-circle">📈</div>
-              <span className="active-label">Overview</span>
-            </button>
-          ) : (
-            <button className="category-btn-inactive" onClick={() => setActiveCategory("overview")}>📈</button>
-          )}
-        </div>
-
-        <div className="category-btn-wrapper" id="cat-btn-issue">
-          {activeCategory === "issue" ? (
-            <button className="category-btn-active" onClick={() => setActiveCategory("issue")}>
-              <div className="active-circle">🖨️</div>
-              <span className="active-label">Invoice Tool</span>
-            </button>
-          ) : (
-            <button className="category-btn-inactive" onClick={() => setActiveCategory("issue")}>🖨️</button>
-          )}
-        </div>
-
-        <div className="category-btn-wrapper" id="cat-btn-sales">
-          {activeCategory === "sales" ? (
-            <button className="category-btn-active" onClick={() => setActiveCategory("sales")}>
-              <div className="active-circle">🧾</div>
-              <span className="active-label">Sales Log</span>
-            </button>
-          ) : (
-            <button className="category-btn-inactive" onClick={() => setActiveCategory("sales")}>🧾</button>
-          )}
-        </div>
-
-        <div className="category-btn-wrapper" id="cat-btn-register">
-          {activeCategory === "register" ? (
-            <button className="category-btn-active" onClick={() => setActiveCategory("register")}>
-              <div className="active-circle">🏢</div>
-              <span className="active-label">License</span>
-            </button>
-          ) : (
-            <button className="category-btn-inactive" onClick={() => setActiveCategory("register")}>🏢</button>
-          )}
-        </div>
-      </section>
-
       {/* Main card panel - simulates view transition */}
       <section key={activeCategory} className="hero-card fade-transition">
         <div className="decorative-blob" />
@@ -781,7 +734,7 @@ export default function Home() {
       {/* Floating navigation bar */}
       <div className="nav-wrapper">
         <nav className="nav-pill-bar">
-          <button className={`nav-item-btn ${activeCategory === "overview" ? "active" : "inactive"}`} onClick={() => setActiveCategory("overview")}>
+          <button className={`nav-item-btn ${activeCategory === "overview" ? "active" : "inactive"}`} onClick={() => setActiveCategory("overview")} title="Overview">
             <svg viewBox="0 0 24 24" stroke="currentColor">
               <rect x="3" y="3" width="7" height="9" rx="1" />
               <rect x="14" y="3" width="7" height="5" rx="1" />
@@ -790,9 +743,15 @@ export default function Home() {
             </svg>
           </button>
 
+          <button className={`nav-item-btn ${activeCategory === "issue" ? "active" : "inactive"}`} onClick={() => setActiveCategory("issue")} title="Invoice Tool">
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" strokeWidth="2">
+              <path d="M4 19h16v-7a2 2 0 0 0-2 2H6a2 2 0 0 0-2 2v7zM6 6h12v4H6V6zM6 14h12v2H6v-2z"></path>
+            </svg>
+          </button>
+
           {/* FAB: Launch Invoicing tool */}
           <div className="fab-container">
-            <button className={`fab-btn ${isModalOpen ? "open" : ""}`} onClick={() => setIsModalOpen(true)}>
+            <button className={`fab-btn ${isModalOpen ? "open" : ""}`} onClick={() => setIsModalOpen(true)} title="Quick Issue Invoice">
               <svg viewBox="0 0 24 24" stroke="currentColor">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -800,9 +759,15 @@ export default function Home() {
             </button>
           </div>
 
-          <button className={`nav-item-btn ${activeCategory === "sales" ? "active" : "inactive"}`} onClick={() => setActiveCategory("sales")}>
+          <button className={`nav-item-btn ${activeCategory === "sales" ? "active" : "inactive"}`} onClick={() => setActiveCategory("sales")} title="Sales Log">
             <svg viewBox="0 0 24 24" stroke="currentColor">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+          </button>
+
+          <button className={`nav-item-btn ${activeCategory === "register" ? "active" : "inactive"}`} onClick={() => setActiveCategory("register")} title="License">
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" strokeWidth="2">
+              <path d="M22 21H2V3h20v18zM6 8V6h3v2H6zm0 5v-2h3v2H6zm0 5v-2h3v2H6zm6-10V6h6v2h-6zm0 5v-2h6v2h-6zm0 5v-2h6v2h-6z"/>
             </svg>
           </button>
         </nav>
