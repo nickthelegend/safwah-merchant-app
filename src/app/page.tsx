@@ -138,6 +138,31 @@ export default function Home() {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Offramp.money widget integration
+  const handleOfframp = () => {
+    if (!walletAddress) {
+      toast.error("Please connect your wallet first!");
+      return;
+    }
+    try {
+      const { OnrampWebSDK } = require('@onramp.money/onramp-web-sdk');
+      const onrampSDK = new OnrampWebSDK({
+        appId: 12345,
+        walletAddress: walletAddress,
+        coinCode: "USDC",
+        network: "sui",
+        fiatAmount: 100,
+        sandbox: true,
+        flowType: 2, // Sell/Offramp
+      });
+      onrampSDK.show();
+      toast.success("Initialized Offramp.money widget (Sandbox)!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to open off-ramp widget");
+    }
+  };
+
   const handleRegisterMerchant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!walletConnected) {
@@ -453,6 +478,15 @@ export default function Home() {
                 🌟 Instant direct payout model: Payments settle immediately to your Sui address upon government exit stamp.
               </div>
             </div>
+            {walletConnected && (
+              <button 
+                className="btn-primary" 
+                style={{ width: "100%", padding: "14px", marginTop: "16px", background: "#10B981", color: "#000", border: "none" }}
+                onClick={handleOfframp}
+              >
+                Off-Ramp USDC to AED (Fiat)
+              </button>
+            )}
           </>
         )}
 
