@@ -75,6 +75,29 @@ export default function Home() {
   // Invoices list state
   const [invoices, setInvoices] = useState<Invoice[]>([]);
 
+  // Load invoices from MongoDB on mount
+  useEffect(() => {
+    if (!walletAddress) return;
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    fetch(`${backendUrl}/api/invoices/merchant/${walletAddress}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const mapped = data.map((item: any) => ({
+            id: item.invoiceNumber,
+            customerWallet: item.customerAddress.length > 15 ? (item.customerAddress.slice(0, 6) + "..." + item.customerAddress.slice(-4)) : item.customerAddress,
+            amount: `${parseFloat(item.amountAED).toLocaleString()} AED`,
+            vat: `${parseFloat(item.vatAED).toLocaleString()} AED`,
+            date: new Date(item.timestamp).toISOString().split('T')[0],
+            status: item.status
+          }));
+          setInvoices(mapped);
+        }
+      })
+      .catch(err => console.warn("Failed to load invoices from MongoDB", err));
+  }, [walletAddress]);
+
+
   // Form states for generating digital invoice
   const [paymentMode, setPaymentMode] = useState<"physical" | "digital">("physical");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -199,6 +222,24 @@ export default function Home() {
         setTotalVatRefunded(prev => (parseFloat(prev.replace(/,/g, '')) + vatUSDC).toFixed(2));
         setMerchantUsdc(prev => (parseFloat(prev) + (vatUSDC * 0.1)).toFixed(2)); // 10% platform share
 
+        // Save to MongoDB
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+        fetch(`${backendUrl}/api/invoices`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            invoiceNumber,
+            merchantAddress: walletAddress,
+            customerAddress: customerAddress,
+            businessName: licenseFields?.business_name || "Dubai Mall Store",
+            amountAED: invoiceAmount,
+            vatAED: calculatedVat,
+            status: "Issued",
+            walrusBlobId: walrusResult.blobId,
+            walrusUrl: walrusResult.blobUrl
+          })
+        }).catch(err => console.error("Failed to save invoice to MongoDB", err));
+
         setGeneratedInvoice(newInvoice);
         toast.success(`Invoice NFT successfully minted and sent to tourist wallet!\nTransaction Hash: ${result.digest}\nWalrus Blob: ${walrusResult.blobId.slice(0, 8)}...`);
       } else {
@@ -226,6 +267,24 @@ export default function Home() {
         };
 
         setInvoices(prev => [newInvoice, ...prev]);
+
+        // Save to MongoDB
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+        fetch(`${backendUrl}/api/invoices`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            invoiceNumber,
+            merchantAddress: walletAddress,
+            customerAddress: "Digital SUI Pay",
+            businessName: licenseFields?.business_name || "Dubai Mall Store",
+            amountAED: invoiceAmount,
+            vatAED: calculatedVat,
+            status: "Issued",
+            walrusBlobId: walrusResult.blobId,
+            walrusUrl: walrusResult.blobUrl
+          })
+        }).catch(err => console.error("Failed to save invoice to MongoDB", err));
 
         // Update store analytics locally
         const amountUSDC = (parseFloat(invoiceAmount) / 3.67);

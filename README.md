@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏪 Safwah Merchant Portal Frontend
 
-## Getting Started
+This Next.js application serves as the storefront/boutique portal for retail merchants in the UAE. It allows them to register their trade license, mint digital tax-free invoices directly to tourist wallets, and collect payments atomically.
 
-First, run the development server:
+## 🌟 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+* **Store Registration**: Submit business name, trade license number, and TRN to the UAE Federal Tax Authority (FTA) registry on-chain.
+* **Generate Refund Tags**: Upload invoice files to Walrus and mint `InvoiceNFT` records directly to customer wallets.
+* **Atomic Digital Sui Pay**: Generate a payment QR code for tourist checkouts. Collects 95% net purchase amount instantly while routing 5% VAT to the escrow contract, triggering the tourist's instant refund refund.
+* **MongoDB Integration**: Stores issued invoice histories persistently in MongoDB via backend routes.
+
+## ⚙️ Configuration (`.env`)
+
+Configure the following variables in a `.env` file:
+```env
+VITE_SUI_PACKAGE_ID=0x96604c290f1467bf041b080bf945518d56f597cb6a07d0d698466c44ed0eabfb
+VITE_MERCHANT_REGISTRY_ID=0x28659ebac204de2bdb7b76ae5336b12db82771edca09b60707d7422dea3cb4d1
+VITE_BACKEND_URL=http://localhost:3001
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Execution & Testing
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Install dependencies:
+```bash
+npm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Run in development mode:
+```bash
+npm run dev
+```
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Run tests:
+```bash
+npm run test
+```
