@@ -142,7 +142,7 @@ export default function Home() {
         <div>
           <p className="font-bold">Store successfully registered on Sui!</p>
           <a
-            href={`https://suiscan.xyz/txblock/${result.digest}?network=testnet`}
+            href={`https://suiscan.xyz/testnet/tx/${result.digest}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-500 hover:text-blue-700 underline text-xs font-semibold block mt-1"
@@ -258,7 +258,7 @@ export default function Home() {
             <p className="font-bold">Invoice NFT successfully minted and sent to tourist wallet!</p>
             <p className="text-xs text-zinc-300 mt-1">Walrus Blob: {walrusResult.blobId.slice(0, 8)}...</p>
             <a
-              href={`https://suiscan.xyz/txblock/${result.digest}?network=testnet`}
+              href={`https://suiscan.xyz/testnet/tx/${result.digest}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-500 hover:text-blue-700 underline text-xs font-semibold block mt-1"
