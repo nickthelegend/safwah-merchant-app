@@ -2,8 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { useSuiClient, useSuiClientQuery } from "@mysten/dapp-kit";
-import { useDynamicWallet } from "../hooks/useDynamicWallet";
+import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient, useSuiClientQuery } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
 import WalletConnect from "../components/WalletConnect";
 import { uploadToWalrus } from "../lib/walrus";
@@ -46,10 +45,11 @@ export default function Home() {
   const fxRate = useFxRate();
   const [activeCategory, setActiveCategory] = useState<CategoryId>("overview");
   
-  // Real Sui Wallet connection hooks via Dynamic
-  const { currentAccount, mutateAsync: signAndExecute } = useDynamicWallet();
+  // Real Sui Wallet connection hooks
+  const currentAccount = useCurrentAccount();
   const walletConnected = !!currentAccount;
   const walletAddress = currentAccount?.address || "";
+  const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
   const suiClient = useSuiClient();
 
   // Query owned MerchantLicense object
