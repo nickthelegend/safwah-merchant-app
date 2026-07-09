@@ -38,7 +38,7 @@ export default function Live() {
   const input = { height: 46, padding: "0 14px", borderRadius: 12, background: "var(--sunken)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 14 } as const;
 
   return (
-    <main style={{ maxWidth: 820, margin: "0 auto", padding: "32px 24px 96px" }}>
+    <main style={{ maxWidth: 920, padding: "34px 44px 96px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
           <span className="mono" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--emerald)", background: "var(--emerald-wash)", padding: "5px 11px", borderRadius: 99 }}>● Live · Polygon Amoy</span>

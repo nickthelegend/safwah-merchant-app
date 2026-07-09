@@ -57,9 +57,9 @@ export default function Invoices() {
     <main style={{ maxWidth: 1000, padding: "34px 44px 80px" }}>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <span className="mono" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--text-dim)" }}>Collect</span>
-          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5, marginTop: 6 }}>Invoices</h1>
-          <p style={{ color: "var(--text-dim)", fontSize: 14, marginTop: 4 }}>Send a request, your client pays in crypto, and AED settles to you — instantly.</p>
+          <span className="eyebrow" style={{ display: "block" }}>Collect</span>
+          <h1 className="display" style={{ fontSize: 32, marginTop: 6 }}>Invoices</h1>
+          <p style={{ color: "var(--text-dim)", fontSize: 14, marginTop: 8 }}>Send a request, your client pays in crypto, and AED settles to you — instantly.</p>
         </div>
         <button onClick={() => setOpen((o) => !o)} className="btn-lime" style={{ height: 46, padding: "0 20px", fontSize: 14 }}>{open ? "Close" : "+ New invoice"}</button>
       </div>
@@ -67,7 +67,7 @@ export default function Invoices() {
       {/* summary */}
       <div style={{ display: "flex", gap: 14, marginTop: 24, flexWrap: "wrap" }}>
         {([["Outstanding", totals.outstanding, "var(--text)"], ["Paid this month", totals.paid, "var(--emerald)"], ["Overdue", totals.overdue, "var(--danger)"]] as const).map(([l, v, c]) => (
-          <div key={l} className="card" style={{ padding: 18, flex: 1, minWidth: 160 }}>
+          <div key={l} className="pop-card" style={{ padding: 18, flex: 1, minWidth: 160 }}>
             <div style={{ color: "var(--text-dim)", fontSize: 12, fontWeight: 500 }}>{l}</div>
             <div className="mono" style={{ fontSize: 24, fontWeight: 700, marginTop: 6, color: c }}>AED {fmt(v, 0)}</div>
           </div>
@@ -76,7 +76,7 @@ export default function Invoices() {
 
       {/* create */}
       {open && (
-        <div className="card" style={{ padding: 22, marginTop: 16 }}>
+        <div className="pop-card" style={{ padding: 22, marginTop: 16 }}>
           <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 14 }}>New invoice</h3>
           <div style={{ display: "grid", gap: 12 }}>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -90,7 +90,7 @@ export default function Invoices() {
       )}
 
       {/* list */}
-      <div className="card" style={{ padding: 8, marginTop: 16 }}>
+      <div className="pop-card" style={{ padding: 8, marginTop: 16 }}>
         {list.map((i, idx) => {
           const s = STATUS[i.status];
           return (
