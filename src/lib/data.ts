@@ -5,7 +5,7 @@ export type Tok = "USDT" | "ETH" | "AED";
 export const TOK: Record<Tok, { aed: number; color: string }> = {
   USDT: { aed: RATE, color: "#26a17b" },
   ETH: { aed: RATE * 3150, color: "#8a92b2" },
-  AED: { aed: 1, color: "#131316" },
+  AED: { aed: 1, color: "#15300C" },
 };
 
 export const WEEK = [
@@ -25,7 +25,7 @@ export const SALES: Sale[] = [
 export const TOKEN_MIX = [
   { label: "USDT", value: 531.75, color: "#26a17b" },
   { label: "ETH", value: 530, color: "#8a92b2" },
-  { label: "AED", value: 42, color: "#131316" },
+  { label: "AED", value: 42, color: "#15300C" },
 ];
 
 export const initialAvailable = 1604.75;

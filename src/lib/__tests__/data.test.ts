@@ -20,7 +20,7 @@ describe("token metadata (TOK)", () => {
     expect(TOK.USDT.aed).toBe(RATE);
     expect(TOK.ETH.aed).toBeGreaterThan(0);
   });
-  it("uses the premium ink color for AED (post-reskin)", () => {
-    expect(TOK.AED.color).toBe("#131316");
+  it("uses the Talise dark-green ink color for AED", () => {
+    expect(TOK.AED.color).toBe("#15300C");
   });
 });

@@ -89,7 +89,7 @@ export default function ChargePage() {
           <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Scan to pay</div>
           <div className="mono" style={{ fontSize: 34, fontWeight: 700, marginTop: 4 }}>AED {fmt(charge.aed)}</div>
           <div style={{ background: "#fff", padding: 16, borderRadius: 16, display: "inline-block", marginTop: 18, border: "1px solid var(--border)" }}>
-            <QRCode value={charge.link} size={180} bgColor="#ffffff" fgColor="#131316" />
+            <QRCode value={charge.link} size={180} bgColor="#ffffff" fgColor="#15300C" />
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 18, color: "var(--text-dim)", fontSize: 13 }}>
             <span style={{ width: 8, height: 8, borderRadius: 99, background: "var(--emerald)" }} className="animate-pulse-ring" />

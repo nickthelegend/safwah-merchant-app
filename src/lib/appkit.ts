@@ -33,6 +33,6 @@ createAppKit({
     icons: ["https://avatars.githubusercontent.com/u/179229932"],
   },
   themeMode: "light",
-  themeVariables: { "--w3m-accent": "#131316" },
+  themeVariables: { "--w3m-accent": "#15300C" },
   features: { analytics: false, email: true, socials: ["google", "apple", "x", "discord"] },
 });

@@ -7,7 +7,7 @@ import { useOnchain } from "@/components/OnchainProvider";
 import { readTreasury, type Treasury } from "@/lib/onchain";
 
 const ASSETS = [
-  { sym: "AED", name: "Dirham balance", amt: 48920, aed: 48920, color: "#131316" },
+  { sym: "AED", name: "Dirham balance", amt: 48920, aed: 48920, color: "#15300C" },
   { sym: "USDT", name: "Tether (idle treasury)", amt: 12000, aed: 44070, color: "#26a17b" },
   { sym: "ETH", name: "Ethereum", amt: 3.2, aed: 37632, color: "#8a92b2" },
 ];
@@ -27,7 +27,7 @@ export default function Treasury() {
   const onchain = !!addr && !!real;
   const RATE = 3.6725;
   const assets = onchain ? [
-    { sym: "AED", name: "Dirham balance", amt: real!.aed, aed: real!.aed, color: "#131316" },
+    { sym: "AED", name: "Dirham balance", amt: real!.aed, aed: real!.aed, color: "#15300C" },
     { sym: "USDT", name: "Tether (on-chain)", amt: real!.usdt, aed: real!.usdt * RATE, color: "#26a17b" },
     { sym: "POL", name: "Gas (native)", amt: real!.pol, aed: real!.pol * 1.8, color: "#8247e5" },
   ] : ASSETS;

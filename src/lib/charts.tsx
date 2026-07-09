@@ -4,9 +4,9 @@ type Pt = { x: string; y: number };
 type Bar = { label: string; value: number; color?: string };
 type Slice = { label: string; value: number; color: string };
 
-const GRID = "rgba(19,19,22,0.06)";
-const AXIS = "#9a9aa2";
-const INK = "#131316";
+const GRID = "rgba(21,48,12,0.06)";
+const AXIS = "#7B9169";
+const INK = "#15300C";
 
 export function LineChart({ data, color = INK, height = 200 }: { data: Pt[]; color?: string; height?: number }) {
   const w = 560, h = height, pad = 16;
@@ -43,7 +43,7 @@ export function BarChart({ data, height = 200 }: { data: Bar[]; height?: number 
         const x = pad + i * ((w - pad * 2) / data.length) + 6;
         return (
           <g key={i}>
-            <text x={x + bw / 2} y={h - 30 - bh - 6} fill="#63636b" fontSize="10" textAnchor="middle" fontFamily="var(--font-mono)">{d.value}</text>
+            <text x={x + bw / 2} y={h - 30 - bh - 6} fill="#46603A" fontSize="10" textAnchor="middle" fontFamily="var(--font-mono)">{d.value}</text>
             <rect x={x} y={h - 28 - bh} width={bw} height={bh} rx={7} fill={d.color || INK} opacity={0.92} />
             <text x={x + bw / 2} y={h - 10} fill={AXIS} fontSize="10" textAnchor="middle" fontFamily="var(--font-mono)">{d.label}</text>
           </g>
@@ -71,14 +71,14 @@ export function Doughnut({ data, centerValue, centerLabel }: { data: Slice[]; ce
         </svg>
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
           {centerValue && <span className="mono" style={{ fontSize: 18, fontWeight: 700 }}>{centerValue}</span>}
-          {centerLabel && <span style={{ fontSize: 11, color: "#9a9aa2" }}>{centerLabel}</span>}
+          {centerLabel && <span style={{ fontSize: 11, color: "#7B9169" }}>{centerLabel}</span>}
         </div>
       </div>
       <div style={{ flex: 1, minWidth: 180, display: "flex", flexDirection: "column", gap: 10 }}>
         {data.map((d) => (
           <div key={d.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ width: 10, height: 10, borderRadius: 99, background: d.color }} />
-            <span style={{ flex: 1, fontSize: 13, color: "#63636b" }}>{d.label}</span>
+            <span style={{ flex: 1, fontSize: 13, color: "#46603A" }}>{d.label}</span>
             <span className="mono" style={{ fontWeight: 700, fontSize: 13 }}>{Math.round((d.value / total) * 100)}%</span>
           </div>
         ))}

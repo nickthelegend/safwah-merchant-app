@@ -20,11 +20,11 @@ const TXNS = [
 
 function CardFace({ c }: { c: Card }) {
   return (
-    <div style={{ position: "relative", borderRadius: 20, padding: 22, minHeight: 200, color: "#fff", overflow: "hidden", background: "linear-gradient(140deg, #1c1c22 0%, #131316 55%, #050506 100%)", boxShadow: "0 20px 44px -20px rgba(19,19,22,0.5)", opacity: c.frozen ? 0.55 : 1 }}>
+    <div style={{ position: "relative", borderRadius: 20, padding: 22, minHeight: 200, color: "#fff", overflow: "hidden", background: "linear-gradient(140deg, #1c1c22 0%, #15300C 55%, #050506 100%)", boxShadow: "0 20px 44px -20px rgba(21,48,12,0.5)", opacity: c.frozen ? 0.55 : 1 }}>
       <div style={{ position: "absolute", top: -40, right: -30, width: 180, height: 180, borderRadius: 999, background: "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)" }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ width: 18, height: 18, borderRadius: 5, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ width: 5, height: 5, borderRadius: 99, background: "#131316" }} /></span>
+          <span style={{ width: 18, height: 18, borderRadius: 5, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ width: 5, height: 5, borderRadius: 99, background: "#15300C" }} /></span>
           <span style={{ fontWeight: 600, fontSize: 15, letterSpacing: -0.3 }}>safwah</span>
         </div>
         <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{c.type}</span>

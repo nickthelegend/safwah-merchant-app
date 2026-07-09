@@ -1,20 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { fmt, SALES, TOK, WEEK, initialAvailable, IBAN } from "@/lib/data";
 import { BarChart } from "@/lib/charts";
 import { useOnchain } from "@/components/OnchainProvider";
+import { getStats, type Stats } from "@/lib/api";
 
 export default function Home() {
   const { addr, state } = useOnchain();
   const onchain = !!(addr && state);
   const [localAvailable, setLocalAvailable] = useState(initialAvailable);
+  const [stats, setStats] = useState<Stats | null>(null);
+  useEffect(() => { getStats().then(setStats); }, []);
   const available = onchain ? state!.aed : localAvailable;
   const today = SALES.slice(0, 4).reduce((s, x) => s + x.aed, 0);
-  const vat = +(today * 0.05).toFixed(0);
-  const bars = WEEK.map((d, i) => ({ label: d.x, value: d.y, color: i === WEEK.length - 1 ? "#131316" : "#d1d1d6" }));
+  // VAT collected: live from the API's aggregate when available, else the demo estimate.
+  const vat = stats && stats.txCount > 0 ? fmt(stats.totalVatAED, 0) : `${+(today * 0.05).toFixed(0)}`;
+  const bars = WEEK.map((d, i) => ({ label: d.x, value: d.y, color: i === WEEK.length - 1 ? "#15300C" : "#cfe0bd" }));
 
   const withdraw = () => {
     if (available <= 0) return;
