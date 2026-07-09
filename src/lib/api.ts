@@ -48,6 +48,14 @@ export const getStats = () => apiGet<Stats>("/stats", DEFAULT_STATS);
 export const getTransactions = () => apiGet<Transaction[]>("/transactions", []);
 export const getRates = () => apiGet<Rates>("/rates", DEFAULT_RATES);
 
+export type Holding = { sym: string; name: string; amt: number; aed: number };
+export type Card = { holder: string; last4: string; type: "Virtual" | "Physical"; limit: number; spent: number; frozen: boolean };
+export type Payout = { to: string; dest: string; asset: "AED" | "USDT" | "ETH"; aed: number; status: "sent" | "queued"; ts: number };
+
+export const getTreasury = () => apiGet<Holding[]>("/treasury", []);
+export const getCards = () => apiGet<Card[]>("/cards", []);
+export const getPayouts = () => apiGet<Payout[]>("/payouts", []);
+
 export const fmt = (n: number, dp = 2) =>
   n.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
 
