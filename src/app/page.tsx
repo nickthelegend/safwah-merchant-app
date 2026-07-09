@@ -5,17 +5,21 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { fmt, SALES, TOK, WEEK, initialAvailable, IBAN } from "@/lib/data";
 import { BarChart } from "@/lib/charts";
+import { useOnchain } from "@/components/OnchainProvider";
 
 export default function Home() {
-  const [available, setAvailable] = useState(initialAvailable);
+  const { addr, state } = useOnchain();
+  const onchain = !!(addr && state);
+  const [localAvailable, setLocalAvailable] = useState(initialAvailable);
+  const available = onchain ? state!.aed : localAvailable;
   const today = SALES.slice(0, 4).reduce((s, x) => s + x.aed, 0);
   const vat = +(today * 0.05).toFixed(0);
-  const bars = WEEK.map((d, i) => ({ label: d.x, value: d.y, color: i === WEEK.length - 1 ? "#CCFF00" : "#10b981" }));
+  const bars = WEEK.map((d, i) => ({ label: d.x, value: d.y, color: i === WEEK.length - 1 ? "#131316" : "#d1d1d6" }));
 
   const withdraw = () => {
     if (available <= 0) return;
     toast.success(`AED ${fmt(available)} on its way to your bank`);
-    setAvailable(0);
+    if (!onchain) setLocalAvailable(0);
   };
 
   return (
@@ -28,9 +32,13 @@ export default function Home() {
           <div className="card" style={{ padding: 26 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ color: "var(--text-dim)", fontSize: 14, fontWeight: 500 }}>Available to settle</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--emerald)", background: "var(--emerald-wash)", padding: "4px 10px", borderRadius: 99, display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 6, height: 6, borderRadius: 99, background: "var(--emerald)" }} /> Live
-              </span>
+              {onchain ? (
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--emerald)", background: "var(--emerald-wash)", padding: "4px 10px", borderRadius: 99, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 99, background: "var(--emerald)" }} /> On-chain
+                </span>
+              ) : (
+                <span className="mono" style={{ fontSize: 11, fontWeight: 600, color: "var(--text-mute)", background: "var(--card-soft)", padding: "4px 10px", borderRadius: 99 }}>DEMO</span>
+              )}
             </div>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 10, marginTop: 16 }}>
               <span style={{ fontSize: 20, color: "var(--text-dim)", fontWeight: 600, marginBottom: 8 }}>AED</span>
@@ -98,7 +106,7 @@ export default function Home() {
 
           <div className="card hoverable" style={{ padding: 22 }}>
             <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Tools</h3>
-            {([["New charge", "Charge a tourist by QR", "/charge"], ["Analytics", "Revenue & payment mix", "/analytics"], ["Sales", "Full history & VAT", "/transactions"]] as const).map(([t, s, href]) => (
+            {([["Invoices", "Request payment, settle AED", "/invoices"], ["Payouts", "Pay suppliers & staff", "/payouts"], ["Cards", "Corporate spend cards", "/cards"], ["Treasury", "Hold & earn on balances", "/treasury"]] as const).map(([t, s, href]) => (
               <Link key={t} href={href} style={{ display: "flex", width: "100%", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid var(--hairline)" }}>
                 <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--lime-wash)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--lime)" }}>→</span>
                 <span style={{ flex: 1 }}><span style={{ display: "block", fontWeight: 600, fontSize: 14 }}>{t}</span><span style={{ fontSize: 12, color: "var(--text-mute)" }}>{s}</span></span>

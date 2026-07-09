@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { Nav } from "@/components/Nav";
+import { OnchainProvider } from "@/components/OnchainProvider";
 
-const spaceGrotesk = Space_Grotesk({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  variable: "--font-dm-sans",
   weight: ["400", "500", "600", "700"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains-mono",
-  weight: ["400", "700"],
+  weight: ["400", "500", "700"],
 });
 
 export const metadata: Metadata = {
@@ -23,11 +24,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
-      <body style={{ background: "var(--bg)", minHeight: "100vh" }} className="bg-grid">
-        <Nav />
-        {children}
-        <Toaster richColors position="top-center" theme="dark" />
+    <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
+      <body style={{ background: "var(--bg)", minHeight: "100vh" }}>
+        <OnchainProvider>
+          <Nav />
+          {children}
+        </OnchainProvider>
+        <Toaster richColors position="top-center" theme="light" />
       </body>
     </html>
   );
