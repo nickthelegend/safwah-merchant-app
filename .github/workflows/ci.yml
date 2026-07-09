@@ -15,9 +15,6 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      # Pin npm to the version that generated the lockfile — npm patch releases
-      # validate nested lock resolutions differently.
-      - run: npm install -g npm@11.11.1
       - run: npm ci
       - name: Lint
         run: npm run lint
