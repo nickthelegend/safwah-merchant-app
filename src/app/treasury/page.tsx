@@ -36,7 +36,7 @@ export default function Treasury() {
   const apy = 4.1;
 
   return (
-    <main style={{ maxWidth: 1000, margin: "0 auto", padding: "32px 24px 80px" }}>
+    <main style={{ maxWidth: 1000, padding: "34px 44px 80px" }}>
       <div>
         <span className="mono" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--text-dim)" }}>Hold</span>
         <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5, marginTop: 6 }}>Treasury</h1>

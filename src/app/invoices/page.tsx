@@ -54,7 +54,7 @@ export default function Invoices() {
   const input = { height: 46, padding: "0 14px", borderRadius: 12, background: "var(--sunken)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 14, width: "100%" } as const;
 
   return (
-    <main style={{ maxWidth: 1000, margin: "0 auto", padding: "32px 24px 80px" }}>
+    <main style={{ maxWidth: 1000, padding: "34px 44px 80px" }}>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
           <span className="mono" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--text-dim)" }}>Collect</span>
