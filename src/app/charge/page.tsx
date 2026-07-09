@@ -52,12 +52,13 @@ export default function ChargePage() {
 
   return (
     <main style={{ maxWidth: 480, margin: "0 auto", padding: "40px 24px 80px" }}>
-      <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, marginBottom: 4 }}>New charge</h1>
-      <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 22 }}>Enter an amount — the customer scans, pays in crypto, and AED settles to you on-chain.</p>
+      <span className="eyebrow" style={{ display: "block" }}>Charge</span>
+      <h1 className="display" style={{ fontSize: 32, marginTop: 6 }}>New charge</h1>
+      <p style={{ color: "var(--text-dim)", fontSize: 14, margin: "8px 0 22px" }}>Enter an amount — the customer scans, pays in crypto, and AED settles to you on-chain.</p>
 
       {!charge && (
         <>
-          <div className="card" style={{ padding: 22 }}>
+          <div className="pop-card" style={{ padding: 22 }}>
             <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 8 }}>Amount to charge</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 28, color: "var(--text-dim)", fontWeight: 600 }}>AED</span>
@@ -85,7 +86,7 @@ export default function ChargePage() {
       )}
 
       {charge && !paid && (
-        <div className="card" style={{ padding: 28, textAlign: "center" }}>
+        <div className="pop-card" style={{ padding: 28, textAlign: "center" }}>
           <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Scan to pay</div>
           <div className="mono" style={{ fontSize: 34, fontWeight: 700, marginTop: 4 }}>AED {fmt(charge.aed)}</div>
           <div style={{ background: "#fff", padding: 16, borderRadius: 16, display: "inline-block", marginTop: 18, border: "1px solid var(--border)" }}>
@@ -104,7 +105,7 @@ export default function ChargePage() {
       )}
 
       {charge && paid && (
-        <div className="card" style={{ padding: 32, textAlign: "center" }}>
+        <div className="pop-card" style={{ padding: 32, textAlign: "center" }}>
           <div style={{ width: 66, height: 66, borderRadius: 99, background: "var(--emerald)", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 700, color: "#fff" }}>✓</div>
           <h3 style={{ fontSize: 22, fontWeight: 700, marginTop: 18 }}>Payment received</h3>
           <p style={{ color: "var(--text-dim)", fontSize: 14, marginTop: 6 }}>AED {fmt(charge.aed)} settled to your balance on Polygon Amoy.</p>
