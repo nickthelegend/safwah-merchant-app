@@ -17,8 +17,14 @@
   --lime-wash: rgba(202, 255, 184, 0.45);
   --emerald-wash: rgba(31, 157, 70, 0.10);
   --on-lime: #F7FCF2;
+  --base: #0A0E0B;
+  --hero: #143A0E;
+  --hero-2: #1C4A12;
+  --paper: #F7FCF2;
+  --mint: #DDF3D0;
   --font-sans: var(--font-dm-sans), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
+  --font-display: var(--font-hanken), var(--font-dm-sans), system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -67,3 +73,30 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .btn-ghost:hover { background: var(--card-soft); }
 .hoverable { transition: box-shadow .2s, transform .2s; }
 .hoverable:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(21, 48, 12, 0.05), 0 18px 40px -18px rgba(21, 48, 12, 0.22); }
+
+/* ---- Talise-register app shell ---- */
+.eyebrow { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.22em; font-size: 11px; font-weight: 600; color: var(--text-mute); }
+.display { font-family: var(--font-display); text-transform: uppercase; font-weight: 800; letter-spacing: -0.02em; line-height: 0.98; color: var(--text); }
+
+.pop-card { position: relative; border-radius: 26px; border: 1px solid var(--border); background: var(--card); box-shadow: 4px 6px 0 0 var(--lime); transition: transform .18s ease, box-shadow .18s ease; }
+.pop-card:hover { transform: translate(-1px, -1px); box-shadow: 6px 9px 0 0 var(--lime); }
+.pop-lime { background: var(--accent-lime); border-color: rgba(21,48,12,.18); }
+.pop-mint { background: var(--mint); border-color: rgba(21,48,12,.18); }
+.pop-flat { box-shadow: none; }
+
+.hero-dark { border-radius: 26px; background: linear-gradient(150deg, var(--hero-2), var(--hero) 60%, var(--base)); color: var(--paper); box-shadow: 5px 8px 0 0 var(--base); }
+.hero-dark .eyebrow { color: rgba(247,252,242,.6); }
+
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: 236px; height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; padding: 22px 16px; gap: 4px; border-right: 1px solid var(--hairline); }
+.main { flex: 1; min-width: 0; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 14px; font-size: 14.5px; font-weight: 600; color: var(--text-dim); transition: background .15s, color .15s; }
+.nav-item:hover { background: var(--card-soft); color: var(--text); }
+.nav-item.active { background: var(--lime); color: var(--on-lime); }
+
+.pill { display: inline-flex; align-items: center; gap: 9px; padding: 11px 18px; border-radius: 999px; background: var(--card); border: 1px solid var(--border-strong); font-size: 14px; font-weight: 600; color: var(--text); transition: background .15s, transform .15s; }
+.pill:hover { background: var(--card-soft); transform: translateY(-1px); }
+
+.seg { display: inline-flex; gap: 3px; background: rgba(247,252,242,.12); border: 1px solid rgba(247,252,242,.16); border-radius: 999px; padding: 3px; }
+.seg-btn { padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; color: rgba(247,252,242,.7); }
+.seg-btn.active { background: var(--accent-lime); color: var(--base); }

@@ -30,4 +30,32 @@ export async function apiGet<T>(path: string, fallback: T): Promise<T> {
   }
 }
 
+export type Transaction = {
+  _id?: string;
+  merchant: string;
+  category: string;
+  amountAED: number;
+  vatAED: number;
+  token: "AED" | "USDT" | "ETH";
+  status: string;
+  ts: number;
+};
+
+export type Rates = { aedPerUsd: number; usdtPerUsd: number; updatedAt?: number };
+export const DEFAULT_RATES: Rates = { aedPerUsd: 3.6725, usdtPerUsd: 1 };
+
 export const getStats = () => apiGet<Stats>("/stats", DEFAULT_STATS);
+export const getTransactions = () => apiGet<Transaction[]>("/transactions", []);
+export const getRates = () => apiGet<Rates>("/rates", DEFAULT_RATES);
+
+export const fmt = (n: number, dp = 2) =>
+  n.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+
+export function ago(ts: number): string {
+  const mins = Math.max(0, Math.floor((Date.now() - ts) / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const h = Math.floor(mins / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
